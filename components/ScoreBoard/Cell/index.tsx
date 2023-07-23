@@ -12,7 +12,6 @@ const useStyles = createStyles(() => ({
 
 interface CellProps {
   children: React.ReactNode;
-  key: string;
   symbol: string;
   handleDelete: () => void;
   cellOnClick: () => void;
@@ -20,7 +19,6 @@ interface CellProps {
 
 export const Cell = ({
   children,
-  key,
   symbol,
   handleDelete,
   cellOnClick,
@@ -45,7 +43,6 @@ export const Cell = ({
         onClose={closeDeleteModal}
       />
       <div
-        key={key}
         className="flex content-center rounded-lg border p-4 pl-6 bg-slate-100 hover:bg-slate-200 cursor-pointer"
         onClick={cellOnClick}
       >

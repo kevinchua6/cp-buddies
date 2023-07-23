@@ -9,16 +9,22 @@ export interface SavedUsers {
 }
 
 export class LocalStorage {
-  static getSavedUsers(): SavedUsers {
+  static getSavedUsers() {
     return JSON.parse(
       localStorage.getItem(SAVED_USERS) ||
         '{"leetcode":[],"atcoder":[],"cf":[]}'
     ) as SavedUsers;
   }
 
-  static addSavedUserToPlatform(user: string, platform: PlatformType): void {
+  static addSavedUserToPlatform(user: string, platform: PlatformType) {
     const savedUsers = this.getSavedUsers();
     savedUsers[platform].push(user);
+    localStorage.setItem(SAVED_USERS, JSON.stringify(savedUsers));
+  }
+
+  static removeSavedUserFromPlatform(user: string, platform: PlatformType) {
+    const savedUsers = this.getSavedUsers();
+    savedUsers[platform] = savedUsers[platform].filter((u) => u !== user);
     localStorage.setItem(SAVED_USERS, JSON.stringify(savedUsers));
   }
 }

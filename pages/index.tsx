@@ -6,7 +6,7 @@ import {
 } from "@/components/ScoreBoard";
 import { Button, TextInput, SegmentedControl, Box } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { LocalStorage } from "@/utilities/localStorage";
 import { CodeForcesJsonData, LeetCodeJsonData } from "./apiTypes";
 import { notifications } from "@mantine/notifications";
@@ -40,63 +40,71 @@ export default function Home() {
   const [codeforcesUsernames, setCodeforcesUsernames] = useState<string[]>([]);
   const [sortValue, setSortValue] = useState<SortValueOptions>("Daily");
 
-  const {
-    isLoading: isLcDataLoading,
-    isFetching: isLcDataFetching,
-    data: leetcodeData,
-    refetch: refetchLcData,
-  } = useQuery({
-    queryKey: ["lcData"],
-    queryFn: () =>
-      Promise.all(
-        // TODO: create caching function to make sure we don't fetch the same data twice
-        leetcodeUsernames.map((username) =>
+  /*
+    Since the queries we need to execute is changing from render to render, 
+    we cannot use manual querying since that would violate the rules of hooks. 
+    Instead, we use the useQueries hook, which we can use to 
+    dynamically execute as many queries in parallel
+  */
+  const leetcodeQueryObj = useQueries({
+    queries: leetcodeUsernames.map((username) => {
+      return {
+        queryKey: ["lcData", username],
+        queryFn: () =>
           fetch(`https://leetcode-stats-api.herokuapp.com/${username}`)
             .then((res) => res.json())
-            .then(
-              (data) =>
-                ({
-                  ...data,
-                  username: username,
-                  type: "leetcode",
-                } as Promise<LeetCodeJsonData>)
-            )
-        )
-      ),
+            .then((data) => {
+              if (data.status === "FAILED") {
+                notifications.show({
+                  color: "red",
+                  title: "User not found! 😢",
+                  message:
+                    "The user you entered was not found on LeetCode. Please try again.",
+                });
+                return;
+              }
+              return {
+                ...data,
+                username: username,
+                type: "leetcode",
+              } as Promise<LeetCodeJsonData>;
+            }),
+      };
+    }),
   });
 
-  const {
-    isLoading: isCfDataLoading,
-    isFetching: isCfDataFetching,
-    data: codeforcesData,
-    refetch: refetchCfData,
-  } = useQuery({
-    queryKey: ["cfData"],
-    queryFn: () =>
-      Promise.all(
-        codeforcesUsernames.map((username) =>
+  const codeforcesQueryObj = useQueries({
+    queries: codeforcesUsernames.map((username) => {
+      return {
+        queryKey: ["cfData", username],
+        queryFn: () =>
           fetch(
             `https://codeforces.com/api/user.status?handle=${username}&from=1&count=10`
           )
             .then((res) => res.json())
-            .then(
-              (data) =>
-                ({
-                  ...data,
-                  username: username,
-                  type: "cf",
-                } as Promise<CodeForcesJsonData>)
-            )
-        )
-      ),
+            .then((data) => {
+              if (data.status === "FAILED") {
+                notifications.show({
+                  color: "red",
+                  title: "User not found! 😢",
+                  message:
+                    "The user you entered was not found on CodeForces. Please try again.",
+                });
+                return;
+              }
+              return {
+                ...data,
+                username: username,
+                type: "cf",
+              } as Promise<CodeForcesJsonData>;
+            }),
+      };
+    }),
   });
 
   useEffect(() => {
-    refetchLcData();
-  }, [refetchLcData, leetcodeUsernames, codeforcesUsernames, atcoderUsernames]);
-
-  useEffect(() => {
     setLeetcodeUsernames(LocalStorage.getSavedUsers()["leetcode"]);
+    setCodeforcesUsernames(LocalStorage.getSavedUsers()["cf"]);
   }, []);
 
   const handleDeleteList = (name: string, platformInfo: PlatformInfo) => {
@@ -114,6 +122,7 @@ export default function Home() {
           codeforcesUsernames.filter((currName) => currName !== name)
         );
     }
+    LocalStorage.removeSavedUserFromPlatform(name, platformInfo.platform);
   };
 
   const showSameUserErrorMsg = () => {
@@ -130,9 +139,7 @@ export default function Home() {
   ) => {
     switch (platformType) {
       case "leetcode":
-        console.log("heree");
         if (leetcodeUsernames.includes(newUsername)) {
-          console.log("here");
           showSameUserErrorMsg();
           return;
         }
@@ -158,74 +165,116 @@ export default function Home() {
     addFriendOnClick(addFriendType, addFriendInput);
   };
 
+  type LeetcodeProcessedData = {
+    type: "leetcode";
+    name: string;
+    easy: number;
+    medium: number;
+    hard: number;
+    submissionCalendar: {
+      [key: string]: number;
+    };
+    symbol: string;
+  };
+
   const processedLeetcodeData =
-    leetcodeData?.map((user) => ({
-      type: user.type,
-      name: user.username,
-      easy: user.easySolved,
-      medium: user.mediumSolved,
-      hard: user.hardSolved,
+    leetcodeQueryObj
+      ?.map((user) => {
+        if (!user || !user?.data) return;
+        const userData = user.data;
+        return {
+          type: userData.type,
+          name: userData.username,
+          easy: userData.easySolved,
+          medium: userData.mediumSolved,
+          hard: userData.hardSolved,
 
-      submissionCalendar: user.submissionCalendar,
+          submissionCalendar: userData.submissionCalendar,
 
-      symbol: "LC",
-    })) ?? [];
+          symbol: "LC",
+        };
+      })
+      .filter((ele): ele is LeetcodeProcessedData => !!ele) ?? [];
+
+  type CodeForcesProcessedData = {
+    name: string;
+    submissions: {
+      name: string;
+      tags: string[];
+      count: number;
+    }[];
+    numberOfSubmissionsToday: number;
+    symbol: string;
+    type: "cf";
+  };
 
   // Get the number of unique submissions by name with their tags
   const processedCodeforcesData =
-    codeforcesData?.map((user) => {
-      const submissions = user.result;
-      console.log({ user });
-      // TODO: Maybe find the number of submissions this day or week
-      const submissionsByProblemName = submissions?.reduce(
-        (acc: { [key: string]: { tags: string[]; count: number } }, curr) => {
-          const problemName = curr.problem.name;
-          if (acc[problemName]) {
-            acc[problemName].count += 1;
-          } else {
-            acc[problemName] = {
-              tags: curr.problem.tags,
-              count: 1,
-            };
-          }
-          return acc;
-        },
-        {}
-      );
+    codeforcesQueryObj
+      ?.map((user) => {
+        if (!user || !user?.data) return;
+        const submissions = user.data.result;
 
-      const submissionsByProblemNameArray = Object.entries(
-        submissionsByProblemName
-      ).map(([name, { tags, count }]) => ({
-        name,
-        tags,
-        count,
-      }));
+        const numberOfSubmissionsToday = submissions?.filter(
+          (submission) =>
+            submission.creationTimeSeconds >=
+            new Date().getTime() / 1000 - 24 * 60 * 60
+        ).length;
 
-      return {
-        name: user.username,
-        submissions: submissionsByProblemNameArray,
-        symbol: "CF",
-        type: user.type,
-      };
-    }) ?? [];
+        // TODO: Maybe find the number of submissions this day or week
+        const submissionsByProblemName = submissions?.reduce(
+          (acc: { [key: string]: { tags: string[]; count: number } }, curr) => {
+            const problemName = curr.problem.name;
+            if (acc[problemName]) {
+              acc[problemName].count += 1;
+            } else {
+              acc[problemName] = {
+                tags: curr.problem.tags,
+                count: 1,
+              };
+            }
+            return acc;
+          },
+          {}
+        );
+
+        const submissionsByProblemNameArray = Object.entries(
+          submissionsByProblemName
+        ).map(([name, { tags, count }]) => ({
+          name,
+          tags,
+          count,
+        }));
+
+        return {
+          name: user.data.username,
+          submissions: submissionsByProblemNameArray,
+          numberOfSubmissionsToday,
+          symbol: "CF",
+          type: user.data.type,
+        };
+      })
+      .filter((item): item is CodeForcesProcessedData => !!item) ?? [];
+
+  console.log(processedCodeforcesData);
 
   return (
     <main>
       <NavBar
         links={[
-          { label: "Features", link: "abc.com" },
-          { label: "Learn", link: "abc.com" },
-          { label: "About", link: "abc.com" },
+          // { label: "Features", link: "abc.com" },
+          // { label: "Learn", link: "abc.com" },
+          { label: "About the Author", link: "https://kevinchua6.github.io/" },
         ]}
       />
       <div className="flex flex-col items-center justify-center m-7">
         <div className=" border-4 border-blue-100 rounded-lg p-3 bg-slate-200 flex flex-col items-center justify-center m-7">
           <SegmentedControl
             onChange={(value) => setAddFriendType(value as PlatformType)}
-            data={Array.from(Object.values(codingPlatformsApi)).map(
-              (platform) => ({
-                label: platform.name,
-                value: platform.name.toLowerCase(),
+            data={Array.from(Object.entries(codingPlatformsApi)).map(
+              (platformTuple) => ({
+                label: platformTuple[1].name,
+                value: platformTuple[0],
               })
             )}
           />
@@ -246,12 +295,11 @@ export default function Home() {
             </div>
           </form>
         </div>
-        <Box maw={400} pos="relative">
+        <Box className=" w-[24.5rem]" pos="relative">
           <ScoreBoard
-            loading={isLcDataLoading || isCfDataLoading}
+            loading={leetcodeQueryObj.map((a) => a.isFetching).includes(true)}
             sortValue={sortValue}
             setSortValue={setSortValue}
-            refetch={refetchLcData}
             data={[...processedLeetcodeData, ...processedCodeforcesData]}
             handleDelete={handleDeleteList}
           />

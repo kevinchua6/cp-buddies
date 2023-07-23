@@ -87,15 +87,14 @@ export function NavBar({ links }: NavBarProps) {
           withinPortal
         >
           <Menu.Target>
-            <a
-              href={link.link}
+            <div
+              // href={link.link}
               className={classes.link}
-              onClick={(event) => event.preventDefault()}
             >
               <Center>
                 <span className={classes.linkLabel}>{link.label}</span>
               </Center>
-            </a>
+            </div>
           </Menu.Target>
           <Menu.Dropdown>{menuItems}</Menu.Dropdown>
         </Menu>
@@ -103,12 +102,7 @@ export function NavBar({ links }: NavBarProps) {
     }
 
     return (
-      <a
-        key={link.label}
-        href={link.link}
-        className={classes.link}
-        onClick={(event) => event.preventDefault()}
-      >
+      <a key={link.label} href={link.link} className={classes.link}>
         {link.label}
       </a>
     );

@@ -1,34 +1,12 @@
 import { PlatformType } from "@/pages";
 import { LeetCodeJsonData } from "@/pages/apiTypes";
-import {
-  createStyles,
-  rem,
-  Text,
-  Stack,
-  NativeSelect,
-  LoadingOverlay,
-} from "@mantine/core";
+import { Text, Stack, NativeSelect, LoadingOverlay } from "@mantine/core";
 import { Cell } from "./Cell";
-import { LeetCodeCell } from "./Cell/leetcodeCell";
-
-const getDailyProblemsSolved = (
-  submissionCalendar?: LeetCodeJsonData["submissionCalendar"]
-) => {
-  if (!submissionCalendar) return 0;
-  // submissionCalendar is an object with the keys as the date in unix and the value as the number of problems solved
-  // Get the number of daily problems solved from yesterday
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayUnix = Math.floor(yesterday.getTime() / 1000);
-
-  return Object.values(submissionCalendar).reduce((acc, curr) => {
-    if (curr >= yesterdayUnix) {
-      return acc + 1;
-    }
-
-    return acc;
-  });
-};
+import {
+  AllTimeLeetCodeCell,
+  DailyCell,
+  getDailyProblemsSolved,
+} from "./Cell/leetcodeCell";
 
 export type PlatformInfo = {
   name: string;
@@ -49,13 +27,18 @@ type CodeForcesData = {
   name: string;
   symbol: string;
   type: "cf";
+  numberOfSubmissionsToday: number;
+  submissions: {
+    name: string;
+    tags: string[];
+    count: number;
+  }[];
 };
 
 interface ScoreBoardProps {
   data: (LeetCodeData | CodeForcesData)[];
   handleDelete: (name: string, platformInfo: PlatformInfo) => void;
   loading: boolean;
-  refetch: () => void;
   sortValue: SortValueOptions;
   setSortValue: (value: SortValueOptions) => void;
 }
@@ -70,7 +53,6 @@ const sortValueOptions: SortValueOptionsArray = ["Daily", "All Time"];
 export function ScoreBoard({
   data,
   handleDelete,
-  refetch,
   sortValue,
   setSortValue,
   loading,
@@ -98,97 +80,112 @@ export function ScoreBoard({
           switch (sortValue) {
             case "Daily":
               return (
-                <LeetCodeCell
+                <DailyCell
+                  platformType="leetcode"
                   username={item.name}
-                  key={String(index)}
-                  symbol={item.symbol}
-                  // name={item.name}
                   handleDelete={() =>
                     handleDelete(item.name, {
                       name: item.name,
                       platform: "leetcode",
                     })
                   }
-                >
-                  <div>
-                    <Text>
-                      Solved Today:{" "}
-                      {getDailyProblemsSolved(item.submissionCalendar)}
-                    </Text>
-                    <Text color="dimmed" size="sm">
-                      {item.name}
-                    </Text>
-                  </div>
-                </LeetCodeCell>
+                  submissionCalendar={item.submissionCalendar}
+                />
               );
             case "All Time":
               return (
-                <LeetCodeCell
+                <AllTimeLeetCodeCell
                   username={item.name}
-                  key={String(index)}
-                  symbol={item.symbol}
-                  // name={item.name}
+                  easy={item.easy}
+                  medium={item.medium}
+                  hard={item.hard}
                   handleDelete={() =>
                     handleDelete(item.name, {
                       name: item.name,
                       platform: "leetcode",
                     })
                   }
-                >
-                  <div>
-                    <Text className="flex flex-row flex-wrap">
-                      <div>Easy: {item.easy}</div>
-                      <div className="ml-1 mr-1">•</div>
-                      <div>Medium: {item.medium} </div>
-                      <div className="ml-1 mr-1">•</div>
-                      <div>Hard: {item.hard}</div>
-                    </Text>
-                    <Text color="dimmed" size="sm">
-                      {item.name}
-                    </Text>
-                  </div>
-                </LeetCodeCell>
+                />
               );
           }
         case "cf":
-          return (
-            <Cell
-              cellOnClick={() => {}}
-              key={String(index)}
-              symbol={item.symbol}
-              // name={item.name}
-              handleDelete={() =>
-                handleDelete(item.name, {
-                  name: item.name,
-                  platform: "leetcode",
-                })
-              }
-            >
-              <div>
-                <Text>{item.name}</Text>
-                <Text color="dimmed" size="sm">
-                  {/* Easy: {item.easy} • Medium: {item.medium} • Hard: {item.hard} */}
-                </Text>
-              </div>
-            </Cell>
-          );
+          switch (sortValue) {
+            case "Daily":
+              return (
+                <DailyCell
+                  platformType="cf"
+                  username={item.name}
+                  numberOfSubmissionsToday={item.numberOfSubmissionsToday}
+                  handleDelete={() =>
+                    handleDelete(item.name, {
+                      name: item.name,
+                      platform: "cf",
+                    })
+                  }
+                />
+              );
+            case "All Time":
+              return (
+                <Cell
+                  cellOnClick={() => {
+                    window.open(
+                      `https://codeforces.com/submissions/${item.name}`,
+                      "_blank",
+                      "noreferrer noopener"
+                    );
+                  }}
+                  key={String(index)}
+                  symbol={item.symbol}
+                  handleDelete={() =>
+                    handleDelete(item.name, {
+                      name: item.name,
+                      platform: "cf",
+                    })
+                  }
+                >
+                  <div className="flex-grow">
+                    <Text size="sm" color="#676e75">
+                      Last 10 Submissions
+                    </Text>
+                    <Text className="flex flex-col ">
+                      {item.submissions.map((submission, index) => (
+                        <div key={index}>
+                          {submission.name}: {submission.count}
+                        </div>
+                      ))}
+                    </Text>
+                    <Text size="sm" color="#464646" className=" float-right">
+                      {item.name}
+                    </Text>
+                  </div>
+                </Cell>
+              );
+          }
       }
     });
 
   const onChangeTimeSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setSortValue(event.currentTarget.value as SortValueOptions);
-    // refetch();
   };
 
   return (
-    <Stack w={360}>
-      <NativeSelect
-        value={sortValue}
-        onChange={onChangeTimeSelect}
-        data={sortValueOptions}
-      />
-
-      {items}
+    <Stack>
+      <div>
+        <NativeSelect
+          value={sortValue}
+          onChange={onChangeTimeSelect}
+          data={sortValueOptions}
+          // make this component go to the right
+          className="w-1/3 float-right"
+        />
+      </div>
+      {items && items.length > 0 ? (
+        items
+      ) : (
+        <Text className="text-center">
+          You haven&apos;t added any friends. Go add some!
+        </Text>
+      )}
       <LoadingOverlay className="z-0" visible={loading} overlayBlur={2} />
     </Stack>
   );
