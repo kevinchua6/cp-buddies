@@ -8,7 +8,7 @@ import { Button, TextInput, SegmentedControl, Box } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { LocalStorage } from "@/utilities/localStorage";
-import { CodeForcesJsonData, LeetCodeJsonData } from "./apiTypes";
+import { CodeForcesJsonData, LeetCodeJsonData } from "../types/apiTypes";
 import { notifications } from "@mantine/notifications";
 
 export type PlatformType = keyof typeof codingPlatformsApi;

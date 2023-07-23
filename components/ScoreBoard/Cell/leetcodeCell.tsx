@@ -2,7 +2,7 @@ import { LeetCodeDetailsModal } from "../../Modals";
 import { Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Cell } from ".";
-import { LeetCodeJsonData } from "@/pages/apiTypes";
+import { LeetCodeJsonData } from "@/types/apiTypes";
 import { PlatformInfo } from "..";
 import { PlatformType } from "@/pages";
 

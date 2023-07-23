@@ -1,5 +1,5 @@
 import { PlatformType } from "@/pages";
-import { LeetCodeJsonData } from "@/pages/apiTypes";
+import { LeetCodeJsonData } from "@/types/apiTypes";
 import { Text, Stack, NativeSelect, LoadingOverlay } from "@mantine/core";
 import { Cell } from "./Cell";
 import {

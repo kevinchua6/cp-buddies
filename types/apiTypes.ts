@@ -1,4 +1,4 @@
-import { PlatformType } from ".";
+import { PlatformType } from "../pages";
 
 interface PlatformJsonData {
   type: PlatformType;
