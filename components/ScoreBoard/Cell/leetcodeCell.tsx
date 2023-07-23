@@ -12,6 +12,7 @@ interface LeetCodeCellProps {
   handleDelete: () => void;
   username: string;
   onClick?: () => void;
+  platformType?: PlatformType;
 }
 
 export const LeetCodeCell = ({
@@ -20,6 +21,7 @@ export const LeetCodeCell = ({
   handleDelete,
   username,
   onClick,
+  platformType,
 }: LeetCodeCellProps) => {
   const [
     isLeetCodeModalOpen,
@@ -36,7 +38,7 @@ export const LeetCodeCell = ({
       <Cell
         symbol={symbol}
         handleDelete={handleDelete}
-        cellOnClick={onClick ? onClick : openLeetCodeModal}
+        cellOnClick={platformType === "cf" ? onClick! : openLeetCodeModal}
       >
         {children}
       </Cell>
@@ -117,6 +119,7 @@ export const DailyCell = ({
         platform: "leetcode",
       })
     }
+    platformType={platformType}
   >
     <div className="flex-grow">
       <Text>

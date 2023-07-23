@@ -54,15 +54,36 @@ export default function Home() {
           fetch(`https://leetcode-stats-api.herokuapp.com/${username}`)
             .then((res) => res.json())
             .then((data) => {
-              if (data.status === "FAILED") {
+              if (data.status === "error") {
                 notifications.show({
                   color: "red",
                   title: "User not found! 😢",
                   message:
                     "The user you entered was not found on LeetCode. Please try again.",
                 });
+                setLeetcodeUsernames((prev) =>
+                  prev.filter((name) => name !== username)
+                );
+
                 return;
               }
+
+              if (data.status !== "success") {
+                notifications.show({
+                  color: "red",
+                  title: "Error Occurred! 😢",
+                  message:
+                    "The API server might be down, or the rate limit has been reached! Please try again later.",
+                });
+                setLeetcodeUsernames((prev) =>
+                  prev.filter((name) => name !== username)
+                );
+
+                return;
+              }
+
+              LocalStorage.addSavedUserToPlatform(username, "leetcode");
+
               return {
                 ...data,
                 username: username,
@@ -90,8 +111,28 @@ export default function Home() {
                   message:
                     "The user you entered was not found on CodeForces. Please try again.",
                 });
+                setCodeforcesUsernames((prev) =>
+                  prev.filter((name) => name !== username)
+                );
+
                 return;
               }
+
+              if (data.status !== "OK") {
+                notifications.show({
+                  color: "red",
+                  title: "Error Occurred! 😢",
+                  message:
+                    "The API server might be down, or the rate limit has been reached! Please try again later.",
+                });
+                setCodeforcesUsernames((prev) =>
+                  prev.filter((name) => name !== username)
+                );
+
+                return;
+              }
+              LocalStorage.addSavedUserToPlatform(username, "cf");
+
               return {
                 ...data,
                 username: username,
@@ -113,14 +154,17 @@ export default function Home() {
         setLeetcodeUsernames(
           leetcodeUsernames.filter((currName) => currName !== name)
         );
+        break;
       case "atcoder":
         setAtcoderUsernames(
           atcoderUsernames.filter((currName) => currName !== name)
         );
+        break;
       case "cf":
         setCodeforcesUsernames(
           codeforcesUsernames.filter((currName) => currName !== name)
         );
+        break;
     }
     LocalStorage.removeSavedUserFromPlatform(name, platformInfo.platform);
   };
@@ -144,20 +188,22 @@ export default function Home() {
           return;
         }
         setLeetcodeUsernames([...leetcodeUsernames, newUsername]);
+        break;
       case "atcoder":
         if (atcoderUsernames.includes(newUsername)) {
           showSameUserErrorMsg();
           return;
         }
         setAtcoderUsernames([...atcoderUsernames, newUsername]);
+        break;
       case "cf":
         if (codeforcesUsernames.includes(newUsername)) {
           showSameUserErrorMsg();
           return;
         }
         setCodeforcesUsernames([...codeforcesUsernames, newUsername]);
+        break;
     }
-    LocalStorage.addSavedUserToPlatform(newUsername, platformType);
   };
 
   const onFormSubmit = (e: any) => {
@@ -256,7 +302,7 @@ export default function Home() {
       })
       .filter((item): item is CodeForcesProcessedData => !!item) ?? [];
 
-  console.log(processedCodeforcesData);
+  const { atcoder, ...visibleCodingPlatformsApi } = codingPlatformsApi;
 
   return (
     <main>
@@ -268,10 +314,15 @@ export default function Home() {
         ]}
       />
       <div className="flex flex-col items-center justify-center m-7">
-        <div className=" border-4 border-blue-100 rounded-lg p-3 bg-slate-200 flex flex-col items-center justify-center m-7">
+        <div className="border-4 border-blue-100 rounded-lg p-3 bg-slate-200 flex flex-col items-center justify-center m-7">
+          {/* <div> */}
+          <span className="text-xl font-bold mb-4 mt-1">
+            Add Friend from Platform
+          </span>
+          {/* </div> */}
           <SegmentedControl
             onChange={(value) => setAddFriendType(value as PlatformType)}
-            data={Array.from(Object.entries(codingPlatformsApi)).map(
+            data={Array.from(Object.entries(visibleCodingPlatformsApi)).map(
               (platformTuple) => ({
                 label: platformTuple[1].name,
                 value: platformTuple[0],

@@ -18,6 +18,8 @@ export class LocalStorage {
 
   static addSavedUserToPlatform(user: string, platform: PlatformType) {
     const savedUsers = this.getSavedUsers();
+    if (savedUsers[platform].includes(user)) return;
+
     savedUsers[platform].push(user);
     localStorage.setItem(SAVED_USERS, JSON.stringify(savedUsers));
   }

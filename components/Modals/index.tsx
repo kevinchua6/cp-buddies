@@ -27,7 +27,10 @@ export const DeleteModal = ({
         <div className="flex flex-row justify-between p-4">
           <Button
             variant="filled"
-            onClick={handleDelete}
+            onClick={() => {
+              handleDelete();
+              onClose();
+            }}
             color="red"
             className="bg-red-500"
           >

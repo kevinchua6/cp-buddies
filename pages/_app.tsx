@@ -38,6 +38,7 @@ export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
           <MantineProvider withGlobalStyles withNormalizeCSS>
             <Notifications />
             <Head>
+              <link rel="icon" href="./images/favicon.ico" sizes="any" />
               <meta
                 name="viewport"
                 content="width=device-width, initial-scale=1.0"
