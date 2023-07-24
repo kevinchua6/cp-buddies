@@ -50,6 +50,7 @@ export default function Home() {
     queries: leetcodeUsernames.map((username) => {
       return {
         queryKey: ["lcData", username],
+        refetchOnWindowFocus: false,
         queryFn: () =>
           fetch(`https://leetcode-stats-api.herokuapp.com/${username}`)
             .then((res) => res.json())
@@ -98,6 +99,7 @@ export default function Home() {
     queries: codeforcesUsernames.map((username) => {
       return {
         queryKey: ["cfData", username],
+        refetchOnWindowFocus: false,
         queryFn: () =>
           fetch(
             `https://codeforces.com/api/user.status?handle=${username}&from=1&count=10`

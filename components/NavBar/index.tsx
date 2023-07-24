@@ -124,9 +124,9 @@ export function NavBar({ links }: NavBarProps) {
           <Group spacing={2} className={classes.links}>
             {items}
           </Group>
-          <Button className="bg-main-blue" radius="xl">
+          {/* <Button className="bg-main-blue" radius="xl">
             Login
-          </Button>
+          </Button> */}
         </Group>
       </Container>
     </Header>
